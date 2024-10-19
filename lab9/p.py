@@ -1,20 +1,35 @@
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from scipy import stats
 import streamlit as st
 import plotly.express as px
+import plotly.graph_objects as go
+import plotly.figure_factory as ff
+from scipy import stats  # Añadido esta importación
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import root_mean_squared_error
+from sklearn.metrics import r2_score
 
 # Cargar datos
 data = pd.read_csv("depurado.csv")
 
-fig_size = (10, 5)  # Ajusta el tamaño aquí
-
 # Configuración de la app
 st.set_page_config(page_title="Análisis de Combustibles en Guatemala", layout="wide")
+
+# Estilos personalizados
+st.markdown(
+    """
+    <style>
+    .consumo {color: #E74C3C;}
+    .precios {color: #F39C12;}
+    .indicador-neutro {color: #F1C40F;}
+    .importacion {color: #3498DB;}
+    .secundario {color: #95A5A6;}
+    </style>
+    """, unsafe_allow_html=True)
+
+# Encabezado con color
+st.markdown('<h2 class="importacion">Análisis de Combustibles Importados en Guatemala</h2>', unsafe_allow_html=True)
+st.markdown('<p class="indicador-neutro">Este análisis explora las tendencias de importación y predicción de combustibles a lo largo del tiempo.</p>', unsafe_allow_html=True)
 
 # Columnas de interés
 columns_interes = [
@@ -41,15 +56,11 @@ df_long = pd.melt(
     value_name='importaciones'
 )
 
-# Suma de importaciones generales
-importaciones_generales_mes = df_long.groupby('mes')['importaciones'].sum()
-importaciones_generales_año = df_long.groupby('año')['importaciones'].sum()
-
-# Suma de importaciones por mes y año
+# Suma de importaciones
 importaciones_por_mes = data.groupby('mes')[columns_interes].sum()
 importaciones_por_año = data.groupby('año')[columns_interes].sum()
 
-# **Filtros de selección con opción "Todos"**
+# Filtros de selección
 col1, col2 = st.columns(2)
 
 with col1:
@@ -64,99 +75,188 @@ with col2:
         ["Todos"] + sorted(importaciones_por_año.index.tolist())
     )
 
-# **Mostrar gráficos en columnas**
+# Mostrar gráficos en columnas
 col1, col2 = st.columns(2)
 
 with col1:
     st.subheader(f"Importaciones Totales en el Mes: {mes_seleccionado}")
-    fig_mes, ax_mes = plt.subplots(figsize=(8, 5))
-
     if mes_seleccionado == "Todos":
-        importaciones_por_mes.plot(kind='bar', ax=ax_mes)
+        df_plot = importaciones_por_mes
     else:
-        importaciones_por_mes.loc[[mes_seleccionado]].plot(kind='bar', ax=ax_mes)
-
-    ax_mes.set_xlabel('Tipo de Combustible')
-    ax_mes.set_ylabel('Importaciones')
-    st.pyplot(fig_mes)
+        df_plot = importaciones_por_mes.loc[[mes_seleccionado]]
+    
+    fig_mes = px.bar(
+        df_plot.reset_index(),
+        x='mes',
+        y=columns_interes,
+        title="Importaciones por Mes",
+        barmode='group'
+    )
+    st.plotly_chart(fig_mes, use_container_width=True)
 
 with col2:
     st.subheader(f"Importaciones Totales en el Año: {año_seleccionado}")
-    fig_año, ax_año = plt.subplots(figsize=(8, 5))
-
     if año_seleccionado == "Todos":
-        importaciones_por_año.plot(kind='bar', ax=ax_año)
+        df_plot = importaciones_por_año
     else:
-        importaciones_por_año.loc[[año_seleccionado]].plot(kind='bar', ax=ax_año)
+        df_plot = importaciones_por_año.loc[[año_seleccionado]]
+    
+    fig_año = px.bar(
+        df_plot.reset_index(),
+        x='año',
+        y=columns_interes,
+        title="Importaciones por Año",
+        barmode='group'
+    )
+    st.plotly_chart(fig_año, use_container_width=True)
 
-    ax_año.set_xlabel('Tipo de Combustible')
-    ax_año.set_ylabel('Importaciones')
-    st.pyplot(fig_año)
-
-# **Fila inferior: Gráficos agregados por mes y año**
+# Fila inferior: Gráficos agregados
 col3, col4 = st.columns(2)
 
 with col3:
     st.subheader("Importaciones Totales Agregadas por Mes")
-    fig_mes_total, ax_mes_total = plt.subplots(figsize=(8, 5))
-    importaciones_generales_mes.plot(kind='bar', ax=ax_mes_total)
-    ax_mes_total.set_xlabel('Mes')
-    ax_mes_total.set_ylabel('Importaciones')
-    st.pyplot(fig_mes_total)
+    fig_mes_total = px.bar(
+        df_long.groupby('mes')['importaciones'].sum().reset_index(),
+        x='mes',
+        y='importaciones',
+        title="Importaciones Totales por Mes"
+    )
+    st.plotly_chart(fig_mes_total, use_container_width=True)
 
 with col4:
     st.subheader("Importaciones Totales Agregadas por Año")
-    fig_año_total, ax_año_total = plt.subplots(figsize=(8, 5))
-    importaciones_generales_año.plot(kind='bar', ax=ax_año_total)
-    ax_año_total.set_xlabel('Año')
-    ax_año_total.set_ylabel('Importaciones')
-    st.pyplot(fig_año_total)
+    fig_año_total = px.bar(
+        df_long.groupby('año')['importaciones'].sum().reset_index(),
+        x='año',
+        y='importaciones',
+        title="Importaciones Totales por Año"
+    )
+    st.plotly_chart(fig_año_total, use_container_width=True)
 
-# **Filtro de tipo de combustible**
+# Filtro de tipo de combustible
 tipo_seleccionado = st.selectbox("Selecciona un tipo de combustible:", columns_interes)
 
-# Filtrar datos según selección del usuario
-df_filtrado = data[['Fecha', tipo_seleccionado]].dropna()
+# Filtrar datos
+df_filtrado = data[['Fecha', 'año', 'mes', tipo_seleccionado]].dropna()  # Añadimos 'año' y 'mes' al filtrado
 
-# **Histograma y gráfico Q-Q**
+# Análisis estadístico con Plotly
 st.subheader(f"Análisis del combustible: {tipo_seleccionado}")
-fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+col5, col6 = st.columns(2)
 
-sns.histplot(df_filtrado[tipo_seleccionado], kde=True, ax=axes[0])
-axes[0].set_title(f'Histograma de {tipo_seleccionado}')
-stats.probplot(df_filtrado[tipo_seleccionado], dist="norm", plot=axes[1])
-axes[1].set_title(f'Gráfico Q-Q de {tipo_seleccionado}')
+with col5:
+    # Histograma con Plotly
+    fig_hist = px.histogram(
+        df_filtrado,
+        x=tipo_seleccionado,
+        nbins=30,
+        title=f'Histograma de {tipo_seleccionado}'
+    )
+    fig_hist.add_trace(
+        go.Histogram(
+            x=df_filtrado[tipo_seleccionado],
+            nbinsx=30,
+            name="count",
+            showlegend=False
+        )
+    )
+    st.plotly_chart(fig_hist, use_container_width=True)
 
-st.pyplot(fig)
+with col6:
+    # Q-Q plot con Plotly
+    qq = stats.probplot(df_filtrado[tipo_seleccionado], dist="norm")
+    fig_qq = go.Figure()
+    fig_qq.add_scatter(x=qq[0][0], y=qq[0][1], mode='markers', name='Q-Q Plot')
+    fig_qq.add_scatter(x=qq[0][0], y=qq[0][0] * qq[1][0] + qq[1][1], 
+                      mode='lines', name='Línea de referencia')
+    fig_qq.update_layout(
+        title=f'Gráfico Q-Q de {tipo_seleccionado}',
+        xaxis_title='Cuantiles teóricos',
+        yaxis_title='Cuantiles observados'
+    )
+    st.plotly_chart(fig_qq, use_container_width=True)
 
-# **Gráfico interactivo con Plotly**
+# Gráfico de tendencia temporal
 st.subheader(f"Tendencia de importaciones de {tipo_seleccionado} a lo largo del tiempo")
-fig_line = px.line(df_filtrado, x='Fecha', y=tipo_seleccionado, 
-                   title=f'Importaciones de {tipo_seleccionado} en el tiempo')
-
+fig_line = px.line(
+    df_filtrado,
+    x='Fecha',
+    y=tipo_seleccionado,
+    title=f'Importaciones de {tipo_seleccionado} en el tiempo'
+)
 st.plotly_chart(fig_line, use_container_width=True)
 
-# **Modelo de Regresión Lineal**
+# Modelo de Regresión Lineal
 st.subheader(f"Modelo de Regresión Lineal para {tipo_seleccionado}")
 
-df_filtrado['mes'] = df_filtrado['Fecha'].dt.month
-df_filtrado['año'] = df_filtrado['Fecha'].dt.year
+# Preparar datos para el modelo
 X = df_filtrado[['año', 'mes']]
 y = df_filtrado[tipo_seleccionado]
 
+# Dividir los datos en conjuntos de entrenamiento y prueba
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
+# Entrenar el modelo
 model = LinearRegression()
 model.fit(X_train, y_train)
 y_pred = model.predict(X_test)
 mse = root_mean_squared_error(y_test, y_pred)
 
-st.write(f"**Error cuadrático medio (MSE):** {mse:.2f}")
+# Mostrar métricas
+st.write(f"**Error cuadrático medio (RMSE):** {mse:.2f}")
 
-fig_reg, ax_reg = plt.subplots(figsize=(10, 6))
-ax_reg.plot(y_test.values, label='Valores Reales', marker='o')
-ax_reg.plot(y_pred, label='Valores Predichos', marker='x')
-ax_reg.set_title(f'Valores Reales vs Predichos para {tipo_seleccionado}')
-ax_reg.legend()
+# Mostrar coeficientes e intercepto
+st.write("**Coeficientes del modelo:**")
+st.write(f"- Año: {model.coef_[0]:.2f}")
+st.write(f"- Mes: {model.coef_[1]:.2f}")
+st.write(f"- Intercepto: {model.intercept_:.2f}")
 
-st.pyplot(fig_reg)
+# Crear un DataFrame con los valores reales y predichos
+df_prediccion = pd.DataFrame({
+    'Índice': range(len(y_test)),
+    'Valores Reales': y_test.values,
+    'Valores Predichos': y_pred
+})
+
+# Gráfico de predicción vs valores reales con líneas
+fig_pred = px.line(
+    df_prediccion, 
+    x='Índice',
+    y=['Valores Reales', 'Valores Predichos'],
+    title=f'Valores Reales vs Predichos para {tipo_seleccionado}',
+    color_discrete_map={
+        'Valores Reales': '#00FF00',      # Verde brillante
+        'Valores Predichos': '#FF69B4'    # Rosa
+    }
+)
+
+# Actualizar el diseño
+fig_pred.update_layout(
+    xaxis_title='Índice de muestra',
+    yaxis_title='Valores',
+    showlegend=True,
+    legend_title_text='',
+    # Asegurar que las líneas sean más visibles
+    plot_bgcolor='rgba(0,0,0,0)',
+    paper_bgcolor='rgba(0,0,0,0)',
+    xaxis=dict(
+        showgrid=True,
+        gridwidth=1,
+        gridcolor='rgba(128,128,128,0.2)',
+    ),
+    yaxis=dict(
+        showgrid=True,
+        gridwidth=1,
+        gridcolor='rgba(128,128,128,0.2)',
+    )
+)
+
+# Actualizar las líneas para hacerlas más visibles
+fig_pred.update_traces(
+    line=dict(width=2),    # Hacer las líneas más gruesas
+)
+
+st.plotly_chart(fig_pred, use_container_width=True)
+
+# Añadir métricas adicionales
+r2 = r2_score(y_test, y_pred)
+st.write(f"**Coeficiente de determinación (R²):** {r2:.4f}")
