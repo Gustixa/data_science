@@ -8,11 +8,26 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import root_mean_squared_error
 from sklearn.metrics import r2_score
 
-# Cargar datos
-data = pd.read_csv("depurado.csv")
+import os
 
 # Configuración de la app
 st.set_page_config(page_title="Análisis de Combustibles en Guatemala", layout="wide")
+
+# Construir la ruta absoluta
+current_dir = os.path.dirname(os.path.abspath(__file__))
+file_path = os.path.join(current_dir, 'depurado.csv')
+
+# Verificar si el archivo existe y cargarlo
+if os.path.exists(file_path):
+    df = pd.read_csv(file_path)
+    st.write(df)
+else:
+    st.error(f"El archivo 'data.csv' no se encuentra en {file_path}.")
+
+# Cargar datos
+data = pd.read_csv("depurado.csv")
+
+
 
 # Estilos personalizados
 st.markdown(
