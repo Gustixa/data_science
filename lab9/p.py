@@ -7,7 +7,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import root_mean_squared_error
 from sklearn.metrics import r2_score
-
 import os
 
 # Configuración de la app
@@ -20,27 +19,12 @@ file_path = os.path.join(current_dir, 'depurado.csv')
 # Verificar si el archivo existe y cargarlo
 if os.path.exists(file_path):
     data = pd.read_csv(file_path)
-    # st.write(data)
+    st.write(data)
 else:
     st.error(f"El archivo 'data.csv' no se encuentra en {file_path}.")
 
 # Cargar datos
 # data = pd.read_csv("depurado.csv")
-
-
-
-# Estilos personalizados
-st.markdown(
-    """
-    <style>
-    .consumo {color: #E74C3C;}
-    .precios {color: #F39C12;}
-    .indicador-neutro {color: #F1C40F;}
-    .importacion {color: #3498DB;}
-    .secundario {color: #95A5A6;}
-    </style>
-    """, unsafe_allow_html=True)
-
 # Encabezado con color
 st.markdown('<h2>Análisis de Combustibles Importados en Guatemala</h2>', unsafe_allow_html=True)
 st.markdown('<p>Este análisis explora las tendencias de importación y predicción de combustibles a lo largo del tiempo.</p>', unsafe_allow_html=True)
@@ -111,6 +95,9 @@ with col1:
             tickmode='linear',  # Configurar el modo de los ticks en 'linear'
             tick0=1,  # Primer valor en el eje
             dtick=1  # Distancia entre ticks (en este caso, 1)
+        ),
+        yaxis=dict(
+            title="Importaciones (millones de Quetzales)"  # Etiqueta en el eje Y
         )
     )
     st.plotly_chart(fig_mes, use_container_width=True)
@@ -134,6 +121,9 @@ with col2:
             tickmode='linear',  # Configurar el modo de los ticks en 'linear'
             tick0=1,  # Primer valor en el eje
             dtick=1  # Distancia entre ticks (en este caso, 1)
+        ),
+        yaxis=dict(
+            title="Importaciones (millones de Quetzales)"  # Etiqueta en el eje Y
         )
     )
     st.plotly_chart(fig_año, use_container_width=True)
@@ -177,25 +167,38 @@ with col5:
         df_filtrado,
         x=tipo_seleccionado,
         nbins=30,
-        title=f'Histograma de {tipo_seleccionado}'
-    )
-    fig_hist.add_trace(
-        go.Histogram(
-            x=df_filtrado[tipo_seleccionado],
-            nbinsx=30,
-            name="count",
-            showlegend=False
-        )
+        title=f'Histograma de {tipo_seleccionado}',
+        color_discrete_sequence=['#F1C40F']
     )
     st.plotly_chart(fig_hist, use_container_width=True)
+
+    # Texto explicativo debajo de la gráfica
+    st.markdown(f"""
+    **Nota**: El histograma anterior muestra la distribución de las cantidades importadas de {tipo_seleccionado}. 
+    El eje X representa las cantidades importadas en millones de quetzales, mientras que el eje Y muestra la frecuencia 
+    o el número de veces que esas cantidades se registraron en el conjunto de datos. En resumen, este gráfico refleja 
+    cuántas veces se importaron diferentes cantidades de {tipo_seleccionado} a lo largo del tiempo.
+    """)
 
 with col6:
     # Q-Q plot con Plotly
     qq = stats.probplot(df_filtrado[tipo_seleccionado], dist="norm")
     fig_qq = go.Figure()
-    fig_qq.add_scatter(x=qq[0][0], y=qq[0][1], mode='markers', name='Q-Q Plot')
-    fig_qq.add_scatter(x=qq[0][0], y=qq[0][0] * qq[1][0] + qq[1][1], 
-                      mode='lines', name='Línea de referencia')
+    fig_qq.add_scatter(
+        x=qq[0][0], 
+        y=qq[0][1], 
+        mode='markers', 
+        name='Q-Q Plot'
+    )
+    
+    fig_qq.add_scatter(
+        x=qq[0][0], 
+        y=qq[0][0] * qq[1][0] + qq[1][1],               
+        mode='lines', 
+        name='Línea de referencia',
+        line=dict(color='#E74C3C')  # Cambia 'red' por el color que desees
+    )
+
     fig_qq.update_layout(
         title=f'Gráfico Q-Q de {tipo_seleccionado}',
         xaxis_title='Cuantiles teóricos',
@@ -203,6 +206,14 @@ with col6:
     )
     st.plotly_chart(fig_qq, use_container_width=True)
 
+    # Texto explicativo del Q-Q plot
+    st.markdown(f"""
+    **Nota**: El gráfico Q-Q muestra cómo las cantidades observadas de {tipo_seleccionado} se comparan con una 
+    distribución normal teórica. Los puntos en el gráfico representan los cuantiles observados, mientras que la línea 
+    de referencia muestra dónde caerían los puntos si los datos siguieran perfectamente una distribución normal. 
+    Si los puntos se desvían significativamente de la línea, indica que las cantidades importadas de {tipo_seleccionado} 
+    no siguen una distribución normal.
+    """)
 # Gráfico de tendencia temporal
 st.subheader("Tendencia de importaciones a lo largo del tiempo")
 fig_line = px.line(
