@@ -7,6 +7,7 @@ from scipy import stats  # Añadido esta importación
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import root_mean_squared_error
+import numpy as np
 from sklearn.metrics import r2_score
 
 # Cargar datos
@@ -28,8 +29,8 @@ st.markdown(
     """, unsafe_allow_html=True)
 
 # Encabezado con color
-st.markdown('<h2 class="importacion">Análisis de Combustibles Importados en Guatemala</h2>', unsafe_allow_html=True)
-st.markdown('<p class="indicador-neutro">Este análisis explora las tendencias de importación y predicción de combustibles a lo largo del tiempo.</p>', unsafe_allow_html=True)
+st.markdown('<h2>Análisis de Combustibles Importados en Guatemala</h2>', unsafe_allow_html=True)
+st.markdown('<p>Este análisis explora las tendencias de importación y predicción de combustibles a lo largo del tiempo.</p>', unsafe_allow_html=True)
 
 # Columnas de interés
 columns_interes = [
@@ -62,7 +63,7 @@ importaciones_por_año = data.groupby('año')[columns_interes].sum()
 
 # Filtros de selección
 col1, col2 = st.columns(2)
-
+st.header("Importaciones segun combustible")
 with col1:
     mes_seleccionado = st.selectbox(
         "Selecciona un mes:", 
@@ -77,9 +78,8 @@ with col2:
 
 # Mostrar gráficos en columnas
 col1, col2 = st.columns(2)
-
+st.header("Importaciones Totales segun época")
 with col1:
-    st.subheader(f"Importaciones Totales en el Mes: {mes_seleccionado}")
     if mes_seleccionado == "Todos":
         df_plot = importaciones_por_mes
     else:
@@ -89,13 +89,20 @@ with col1:
         df_plot.reset_index(),
         x='mes',
         y=columns_interes,
-        title="Importaciones por Mes",
+        title=f"Importaciones por Mes: {mes_seleccionado}",
         barmode='group'
+    )
+    # Asegurar que los meses de 1 a 12 aparezcan en el eje X
+    fig_mes.update_layout(
+        xaxis=dict(
+            tickmode='linear',  # Configurar el modo de los ticks en 'linear'
+            tick0=1,  # Primer valor en el eje
+            dtick=1  # Distancia entre ticks (en este caso, 1)
+        )
     )
     st.plotly_chart(fig_mes, use_container_width=True)
 
 with col2:
-    st.subheader(f"Importaciones Totales en el Año: {año_seleccionado}")
     if año_seleccionado == "Todos":
         df_plot = importaciones_por_año
     else:
@@ -105,8 +112,16 @@ with col2:
         df_plot.reset_index(),
         x='año',
         y=columns_interes,
-        title="Importaciones por Año",
+        title=f"Importaciones por Año:{año_seleccionado}",
         barmode='group'
+    )
+    # Asegurar que los meses de 1 a 12 aparezcan en el eje X
+    fig_año.update_layout(
+        xaxis=dict(
+            tickmode='linear',  # Configurar el modo de los ticks en 'linear'
+            tick0=1,  # Primer valor en el eje
+            dtick=1  # Distancia entre ticks (en este caso, 1)
+        )
     )
     st.plotly_chart(fig_año, use_container_width=True)
 
@@ -114,22 +129,22 @@ with col2:
 col3, col4 = st.columns(2)
 
 with col3:
-    st.subheader("Importaciones Totales Agregadas por Mes")
     fig_mes_total = px.bar(
         df_long.groupby('mes')['importaciones'].sum().reset_index(),
         x='mes',
         y='importaciones',
-        title="Importaciones Totales por Mes"
+        title="Importaciones Totales por Mes",
+        color_discrete_sequence=['#3498DB']
     )
     st.plotly_chart(fig_mes_total, use_container_width=True)
 
 with col4:
-    st.subheader("Importaciones Totales Agregadas por Año")
     fig_año_total = px.bar(
         df_long.groupby('año')['importaciones'].sum().reset_index(),
         x='año',
         y='importaciones',
-        title="Importaciones Totales por Año"
+        title="Importaciones Totales por Año",
+        color_discrete_sequence=['#3498DB']
     )
     st.plotly_chart(fig_año_total, use_container_width=True)
 
@@ -176,12 +191,13 @@ with col6:
     st.plotly_chart(fig_qq, use_container_width=True)
 
 # Gráfico de tendencia temporal
-st.subheader(f"Tendencia de importaciones de {tipo_seleccionado} a lo largo del tiempo")
+st.subheader("Tendencia de importaciones a lo largo del tiempo")
 fig_line = px.line(
     df_filtrado,
     x='Fecha',
     y=tipo_seleccionado,
-    title=f'Importaciones de {tipo_seleccionado} en el tiempo'
+    title=f'{tipo_seleccionado}',
+    color_discrete_sequence=['#F39C12']
 )
 st.plotly_chart(fig_line, use_container_width=True)
 
@@ -203,12 +219,6 @@ mse = root_mean_squared_error(y_test, y_pred)
 
 # Mostrar métricas
 st.write(f"**Error cuadrático medio (RMSE):** {mse:.2f}")
-
-# Mostrar coeficientes e intercepto
-st.write("**Coeficientes del modelo:**")
-st.write(f"- Año: {model.coef_[0]:.2f}")
-st.write(f"- Mes: {model.coef_[1]:.2f}")
-st.write(f"- Intercepto: {model.intercept_:.2f}")
 
 # Crear un DataFrame con los valores reales y predichos
 df_prediccion = pd.DataFrame({
