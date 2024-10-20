@@ -2,12 +2,10 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
-import plotly.figure_factory as ff
 from scipy import stats  # Añadido esta importación
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import root_mean_squared_error
-import numpy as np
 from sklearn.metrics import r2_score
 
 # Cargar datos
