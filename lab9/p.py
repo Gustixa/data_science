@@ -19,13 +19,13 @@ file_path = os.path.join(current_dir, 'depurado.csv')
 
 # Verificar si el archivo existe y cargarlo
 if os.path.exists(file_path):
-    df = pd.read_csv(file_path)
-    st.write(df)
+    data = pd.read_csv(file_path)
+    st.write(data)
 else:
     st.error(f"El archivo 'data.csv' no se encuentra en {file_path}.")
 
 # Cargar datos
-data = pd.read_csv("depurado.csv")
+# data = pd.read_csv("depurado.csv")
 
 
 
